@@ -1,0 +1,6 @@
+audiocraft
+torchaudio
+torch
+numpy
+scipy
+demucs
