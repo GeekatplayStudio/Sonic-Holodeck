@@ -295,5 +295,264 @@ app.registerExtension({
             // Set Size
             node.size = [600, 440];
         }
+
+        if (node.comfyClass === "SonicMixer") {
+             const widget = {
+                type: "SONIC_MIXER_UI",
+                name: "mixer_visualizer",
+                draw(y, step, ctx) { return y; }, 
+                computeSize(width) { return [width, 500]; }
+            };
+            node.addCustomWidget(widget);
+
+            // Container for Mixer
+            const container = document.createElement("div");
+            container.style.position = "absolute";
+            container.style.background = "#111";
+            container.style.border = "2px solid #333";
+            container.style.borderRadius = "4px";
+            container.style.boxShadow = "inset 0 0 20px #000";
+            container.style.color = "#eee";
+            container.style.fontFamily = "sans-serif";
+            container.style.padding = "10px";
+            container.style.boxSizing = "border-box";
+            container.style.display = "grid";
+            container.style.gridTemplateColumns = "1fr 1fr 1fr";
+            container.style.gridTemplateRows = "auto auto 1fr";
+            container.style.gap = "10px";
+            container.style.zIndex = "10";
+            document.body.appendChild(container);
+
+            // Header/Branding
+            const header = document.createElement("div");
+            header.style.gridColumn = "1 / span 3";
+            header.innerHTML = "<div style='color:#00f3ff; font-weight:bold; letter-spacing:2px;'>SONIC MIXER <span style='font-size:0.8em; color:#666'>PRO</span></div>";
+            container.appendChild(header);
+
+            // Left Panel: Style & Instruments
+            const leftPanel = document.createElement("div");
+            leftPanel.style.gridColumn = "1";
+            leftPanel.style.background = "#222";
+            leftPanel.style.padding = "10px";
+            leftPanel.style.borderRadius = "4px";
+            leftPanel.innerHTML = "<div style='font-size:10px; color:#888; margin-bottom:5px'>STYLE & INSTRUMENTS</div>";
+            container.appendChild(leftPanel);
+
+            // Style Select Interface
+            const styleDisplay = document.createElement("div");
+            styleDisplay.style.background = "#000";
+            styleDisplay.style.color = "#0f0";
+            styleDisplay.style.padding = "5px";
+            styleDisplay.style.marginBottom = "5px";
+            styleDisplay.style.fontFamily = "monospace";
+            styleDisplay.innerText = "SELECT STYLE";
+            leftPanel.appendChild(styleDisplay);
+            
+            // Instruments Input
+            const instInput = document.createElement("textarea");
+            instInput.style.width = "100%";
+            instInput.style.height = "60px";
+            instInput.style.background = "#333";
+            instInput.style.border = "none";
+            instInput.style.color = "#fff";
+            instInput.style.fontSize = "11px";
+            instInput.style.padding = "5px";
+            instInput.placeholder = "Instruments...";
+            leftPanel.appendChild(instInput);
+
+            // Middle Panel: Lyrics & Vocoder
+            const midPanel = document.createElement("div");
+            midPanel.style.gridColumn = "2";
+            midPanel.style.background = "#222";
+            midPanel.style.padding = "10px";
+            midPanel.style.borderRadius = "4px";
+            midPanel.innerHTML = "<div style='font-size:10px; color:#888; margin-bottom:5px'>LYRICS & VOCODER</div>";
+            container.appendChild(midPanel);
+
+            const lyricsInput = document.createElement("textarea");
+            lyricsInput.style.width = "100%";
+            lyricsInput.style.height = "100px";
+            lyricsInput.style.background = "#000";
+            lyricsInput.style.border = "1px solid #444";
+            lyricsInput.style.color = "#0ff";
+            lyricsInput.style.fontSize = "10px";
+            lyricsInput.style.fontFamily = "monospace";
+            lyricsInput.placeholder = "Enter Lyrics...";
+            midPanel.appendChild(lyricsInput);
+
+            // Right Panel: Faders (BPM, Duration)
+            const rightPanel = document.createElement("div");
+            rightPanel.style.gridColumn = "3";
+            rightPanel.style.background = "#222";
+            rightPanel.style.padding = "10px";
+            rightPanel.style.borderRadius = "4px";
+            rightPanel.style.display = "flex";
+            rightPanel.style.justifyContent = "space-around";
+            container.appendChild(rightPanel);
+
+            function createFader(label, color) {
+                const wrap = document.createElement("div");
+                wrap.style.textAlign = "center";
+                wrap.innerHTML = `<div style='font-size:10px; color:${color}; margin-bottom:5px'>${label}</div>`;
+                
+                const track = document.createElement("div");
+                track.style.width = "10px";
+                track.style.height = "120px";
+                track.style.background = "#111";
+                track.style.margin = "0 auto";
+                track.style.borderRadius = "5px";
+                track.style.position = "relative";
+                wrap.appendChild(track);
+
+                const thumb = document.createElement("div");
+                thumb.style.width = "20px";
+                thumb.style.height = "10px";
+                thumb.style.background = color;
+                thumb.style.position = "absolute";
+                thumb.style.left = "-5px";
+                thumb.style.bottom = "50%";
+                thumb.style.borderRadius = "2px";
+                thumb.style.cursor = "pointer";
+                track.appendChild(thumb);
+                
+                return { wrap, thumb, track };
+            }
+
+            const bpmFader = createFader("BPM", "#f00");
+            const durFader = createFader("DUR", "#ff0");
+            rightPanel.appendChild(bpmFader.wrap);
+            rightPanel.appendChild(durFader.wrap);
+
+            // MAKE Button
+            const makeBtn = document.createElement("button");
+            makeBtn.innerText = "MAKE TRACK";
+            makeBtn.style.gridColumn = "1 / span 3";
+            makeBtn.style.background = "linear-gradient(90deg, #00f3ff, #ff0055)";
+            makeBtn.style.border = "none";
+            makeBtn.style.color = "white";
+            makeBtn.style.padding = "10px";
+            makeBtn.style.fontSize = "14px";
+            makeBtn.style.fontWeight = "bold";
+            makeBtn.style.cursor = "pointer";
+            makeBtn.style.letterSpacing = "2px";
+            makeBtn.style.borderRadius = "4px";
+            makeBtn.onclick = () => {
+                app.queuePrompt(0);
+                makeBtn.innerText = "QUEUED...";
+                setTimeout(() => makeBtn.innerText = "MAKE TRACK", 2000);
+            };
+            container.appendChild(makeBtn);
+
+            // Sync Logic
+             const findWidget = (name) => node.widgets.find(w => w.name === name);
+
+            setTimeout(() => {
+                const w_bpm = findWidget("bpm");
+                const w_dur = findWidget("duration");
+                const w_lyrics = findWidget("lyrics");
+                const w_style = findWidget("style");
+                const w_inst = findWidget("instruments");
+
+                // Sync Lyrics
+                if(w_lyrics) {
+                    lyricsInput.value = w_lyrics.value;
+                    lyricsInput.addEventListener("input", () => w_lyrics.value = lyricsInput.value);
+                }
+                
+                // Sync Instruments
+                if(w_inst) {
+                    instInput.value = w_inst.value;
+                    instInput.addEventListener("input", () => w_inst.value = instInput.value);
+                }
+
+                // Sync Style (Simplified generic sync)
+                if(w_style) {
+                    styleDisplay.innerText = w_style.value;
+                    styleDisplay.onclick = () => {
+                        // Cycle styles simply for this demo
+                        const styles = ["Cyberpunk", "Techno", "Lo-Fi", "Orchestral"];
+                        let idx = styles.indexOf(w_style.value);
+                        if(idx === -1) idx = 0;
+                        else idx = (idx + 1) % styles.length;
+                        w_style.value = styles[idx];
+                        styleDisplay.innerText = styles[idx];
+                    }
+                }
+
+                // Fader Logic
+                const setupFader = (fader, widget, min, max) => {
+                    if(!widget) return;
+                    let isDragging = false;
+                    
+                    const updateUI = () => {
+                        const pct = (widget.value - min) / (max - min);
+                        fader.thumb.style.bottom = `${pct * 100}%`;
+                    };
+                    updateUI();
+
+                    fader.thumb.addEventListener("mousedown", (e) => {
+                        isDragging = true;
+                        e.preventDefault(); 
+                        document.addEventListener("mousemove", onMM);
+                        document.addEventListener("mouseup", onMU);
+                    });
+                    
+                    const onMM = (e) => {
+                        if(!isDragging) return;
+                        const rect = fader.track.getBoundingClientRect();
+                        let y = rect.bottom - e.clientY;
+                        y = Math.max(0, Math.min(y, rect.height));
+                        const pct = y / rect.height;
+                        
+                        fader.thumb.style.bottom = `${pct * 100}%`;
+                        widget.value = Math.floor(min + (pct * (max - min)));
+                    };
+                    
+                    const onMU = () => {
+                        isDragging = false;
+                        document.removeEventListener("mousemove", onMM);
+                        document.removeEventListener("mouseup", onMU);
+                    };
+                };
+
+                setupFader(bpmFader, w_bpm, 60, 200);
+                setupFader(durFader, w_dur, 5, 30);
+
+            }, 200);
+
+            // Position Logic (shared/similar to above)
+            const updatePosition = () => {
+                if (!node || !container) return;
+                const visible = app.canvas.isNodeVisible(node);
+                container.style.display = visible ? "grid" : "none";
+                
+                if (visible) {
+                    const ds = app.canvas.ds;
+                    const offset = app.canvas.convertPosToDOM([node.pos[0], node.pos[1]]);
+                    const scale = ds.scale;
+                    
+                    const w = node.size[0] * scale;
+                    const h = node.size[1] * scale; 
+
+                    container.style.left = `${offset[0]}px`;
+                    container.style.top = `${offset[1] + (30*scale)}px`; // Title offset
+                    container.style.width = `${w}px`;
+                    container.style.height = `${h - (30*scale)}px`;
+                    container.style.fontSize = `${12 * scale}px`;
+                }
+            };
+
+            const originalOnDraw = node.onDraw;
+            node.onDraw = function(ctx) {
+                if (originalOnDraw) originalOnDraw.apply(this, arguments);
+                updatePosition();
+            }
+             const originalOnRemoved = node.onRemoved;
+            node.onRemoved = function() {
+                if (originalOnRemoved) originalOnRemoved.apply(this, arguments);
+                if (container.parentNode) container.parentNode.removeChild(container);
+            }
+            node.size = [500, 350];
+        }
     }
 });

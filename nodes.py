@@ -112,5 +112,123 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SonicHoloSynth": "Sonic-Holodeck 🎧"
+    "SonicHoloSynth": "Sonic-Holodeck 🎧",
+    "SonicMixer": "Sonic DJ Mixer 🎛️",
+    "SonicSinger": "Sonic Singer (Bark) 🎤"
+}
+
+class SonicSinger:
+    """
+    Experimental Vocal Generator using Bark.
+    """
+    def __init__(self):
+        self.preload_models()
+
+    def preload_models(self):
+        # We assume bark is installed
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "lyrics": ("STRING", {"multiline": True, "default": "[verse]\nIn the neon rain, I lost my soul.\n[chorus]\nCybernetic heart, losing control."}),
+                "voice_preset": (["v2/en_speaker_6", "v2/en_speaker_9", "v2/en_speaker_0", "announcer"],),
+                "mode": (["text", "melody"],), 
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO",)
+    RETURN_NAMES = ("vocal_audio",)
+    FUNCTION = "sing"
+    CATEGORY = "Geekatplay Studio"
+
+    def sing(self, lyrics, voice_preset, mode):
+        print(f"Generating vocals with Bark: {voice_preset}")
+        
+        try:
+            from bark import SAMPLE_RATE, generate_audio, preload_models
+        except ImportError:
+            raise ImportError("Please install Bark: pip install git+https://github.com/suno-ai/bark.git")
+            
+        # Helper to ensure models are loaded
+        preload_models()
+
+        # Generate audio from text
+        # Bark is pure text-to-speech effectively, but with [tags] can sing somewhat.
+        audio_array = generate_audio(lyrics, history_prompt=voice_preset)
+
+        # Bark output is numpy array float32
+        # Convert to torch tensor [channels, samples]
+        audio_tensor = torch.from_numpy(audio_array).float()
+        
+        # Add channel dimension if needed (Bark is mono usually)
+        if audio_tensor.dim() == 1:
+            audio_tensor = audio_tensor.unsqueeze(0)
+
+        return ({"waveform": audio_tensor.unsqueeze(0), "sample_rate": SAMPLE_RATE},)
+
+class SonicMixer:
+    """
+    Advanced 'DJ Mixer' Node that constructs the prompt and parameters.
+    """
+    
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "lyrics": ("STRING", {"multiline": True, "default": "In the neon rain...", "placeholder": "Enter Lyrics here"}),
+                "style": (["Cyberpunk", "Synthwave", "Techno", "Lo-Fi", "Cinematic", "Orchestral", "Rock", "Hip Hop", "Ambient"],),
+                "instruments": ("STRING", {"default": "Synthesizer, Drum Machine, Bass", "multiline": False}),
+                "vocoder_fx": (["None", "Robotic", "Ethereal", "Distorted"],),
+                "bpm": ("INT", {"default": 120, "min": 60, "max": 200}),
+                "duration": ("INT", {"default": 15, "min": 5, "max": 30}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "INT", "INT", "FLOAT", "FLOAT")
+    RETURN_NAMES = ("constructed_prompt", "bpm", "duration", "cfg", "temperature")
+    FUNCTION = "mix_track"
+    CATEGORY = "Geekatplay Studio"
+
+    def mix_track(self, lyrics, style, instruments, vocoder_fx, bpm, duration):
+        # Construct a rich prompt for MusicGen
+        prompt_parts = []
+        
+        # Style base
+        prompt_parts.append(f"{style} track")
+        
+        # Instruments
+        if instruments:
+            prompt_parts.append(f"featuring {instruments}")
+            
+        # Vocals/Lyrics intention
+        # Note: MusicGen is instrumental-primary, but adding vocal descriptors helps structure
+        if lyrics.strip():
+            prompt_parts.append("with vocals, singing")
+            if vocoder_fx != "None":
+                prompt_parts.append(f"{vocoder_fx} vocal effects")
+        
+        # BPM context
+        prompt_parts.append(f"{bpm} bpm")
+        
+        # High fidelity keywords
+        prompt_parts.append("high fidelity, stereo, masterpiece")
+        
+        final_prompt = ", ".join(prompt_parts)
+        
+        # Set parameters based on style
+        cfg = 3.0
+        temperature = 1.0
+        
+        if style in ["Techno", "Cyberpunk"]:
+            cfg = 4.0 # More strict
+        elif style in ["Ambient", "Lo-Fi"]:
+             temperature = 1.2 # More variety
+             
+        return (final_prompt, bpm, duration, cfg, temperature)
+
+NODE_CLASS_MAPPINGS = {
+    "SonicHoloSynth": SonicHoloSynth,
+    "SonicMixer": SonicMixer
 }
