@@ -554,5 +554,82 @@ app.registerExtension({
             }
             node.size = [500, 350];
         }
+
+        if (node.comfyClass === "SonicSaver") {
+            const widget = {
+                type: "AUDIO_PREVIEW",
+                name: "audio_preview",
+                draw(y, step, ctx) { return y; },
+                computeSize(width) { return [width, 60]; }
+            };
+            node.addCustomWidget(widget);
+
+            const audioEl = document.createElement("audio");
+            audioEl.controls = true;
+            // Style it to look integrated
+            audioEl.style.width = "90%";
+            audioEl.style.height = "100%";
+            audioEl.style.borderRadius = "5px";
+
+            // Container for audio element
+            const container = document.createElement("div");
+            container.style.position = "absolute";
+            container.style.display = "none";
+            container.style.justifyContent = "center";
+            container.style.alignItems = "center";
+            container.style.pointerEvents = "auto"; // Ensure clicks register on audio controls
+            container.appendChild(audioEl);
+            document.body.appendChild(container);
+
+            const updatePosition = () => {
+                if (!node || !container) return;
+                const visible = app.canvas.isNodeVisible(node);
+                container.style.display = visible ? "flex" : "none";
+                if (visible) {
+                    const ds = app.canvas.ds;
+                    const offset = app.canvas.convertPosToDOM([node.pos[0], node.pos[1]]);
+                    const scale = ds.scale;
+                    
+                    // Position at the bottom of the node
+                    // We assume the widget takes up space at the bottom already due to addCustomWidget
+                    
+                    // Use node.size to find bottom
+                    const w = node.size[0] * scale;
+                    const h = node.size[1] * scale;
+                    const widgetH = 50 * scale; 
+
+                    container.style.left = `${offset[0]}px`;
+                    container.style.top = `${offset[1] + h - widgetH}px`;
+                    container.style.width = `${w}px`;
+                    container.style.height = `${widgetH}px`;
+                }
+            };
+
+            const originalOnDraw = node.onDraw;
+            node.onDraw = function(ctx) {
+                if (originalOnDraw) originalOnDraw.apply(this, arguments);
+                updatePosition();
+            }
+
+            const originalOnRemoved = node.onRemoved;
+            node.onRemoved = function() {
+                if (originalOnRemoved) originalOnRemoved.apply(this, arguments);
+                if (container.parentNode) container.parentNode.removeChild(container);
+            }
+
+            const onExecuted = node.onExecuted;
+            node.onExecuted = function(message) {
+                if (onExecuted) onExecuted.apply(this, arguments);
+                if (message && message.audio && message.audio.length > 0) {
+                     const item = message.audio[0];
+                     const params = new URLSearchParams({
+                         filename: item.filename,
+                         subfolder: item.subfolder,
+                         type: item.type
+                     });
+                     audioEl.src = `/view?${params.toString()}`;
+                }
+            };
+        }
     }
 });
