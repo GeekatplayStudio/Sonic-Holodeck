@@ -11,7 +11,9 @@ def download_models():
         subprocess.check_call([sys.executable, "-m", "pip", "install", "huggingface_hub"])
         from huggingface_hub import hf_hub_download, snapshot_download
 
-    models_path = os.path.join(os.path.dirname(__file__), "models")
+    # Go up one level to project root
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    models_path = os.path.join(project_root, "models")
     os.makedirs(models_path, exist_ok=True)
 
     # Note: AudioCraft usually handles downloading internally to a cache dir (often ~/.cache/huggingface).

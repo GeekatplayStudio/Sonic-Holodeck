@@ -315,6 +315,7 @@ class SonicMixer:
         
         return {
             "required": {
+                "target_model": (["MusicGen", "HeartMuLa", "StableAudio"], {"default": "MusicGen"}),
                 "lyrics": ("STRING", {"multiline": True, "default": "In the neon rain...", "placeholder": "Enter Lyrics here"}),
                 "style": (style_list, {"default": "Cyberpunk"}),
                 "mode": (["Song", "Instrumental"], {"default": "Song"}),
@@ -330,9 +331,25 @@ class SonicMixer:
     FUNCTION = "mix_track"
     CATEGORY = "Geekatplay Studio"
 
-    def mix_track(self, lyrics, style, mode, instruments, vocoder_fx, bpm, duration):
-        # Construct a rich prompt for MusicGen
+    def mix_track(self, target_model, lyrics, style, mode, instruments, vocoder_fx, bpm, duration):
+        # Define Style Groups for Logic
+        strong_styles = ["Techno", "Cyberpunk", "Dubstep", "Drum & Bass", "Industrial", "Hardstyle", "Gabber", "Metal", "Heavy Metal", "Rock", "Punk"]
+        organic_styles = ["Ambient", "Lo-Fi", "Chillout", "Jazz", "Bossa Nova", "Folk", "Acoustic", "Swing", "Reggae"]
+        orchestral_styles = ["Orchestral", "Cinematic", "Classical", "Baroque", "Rococo", "Opera"]
+        pop_styles = ["Pop", "K-Pop", "J-Pop", "Euro Pop", "Disco", "Hip Hop", "Trap", "R&B", "Funk", "Soul"]
+
+        # Construct a rich prompt
         prompt_parts = []
+        
+        # -- MODEL SPECIFIC LOGIC: PRE-PEND --
+        if target_model == "HeartMuLa":
+            # Add structural hints based on "Vibe"
+            if style in strong_styles:
+                prompt_parts.append("[Intro] High energy, Intense, Loud [Chorus]")
+            elif style in pop_styles:
+                prompt_parts.append("[Verse] Upbeat, Catchy [Chorus]")
+            else:
+                prompt_parts.append("[Verse] Melodic, Flowing [Chorus]")
         
         # Style base
         prompt_parts.append(f"{style} track")
@@ -358,17 +375,16 @@ class SonicMixer:
         
         # High fidelity keywords
         prompt_parts.append("high fidelity, stereo, masterpiece")
+
+        # -- MODEL SPECIFIC LOGIC: APPEND --
+        if target_model == "StableAudio":
+            prompt_parts.append("44.1kHz, high fidelity, stereo")
         
         final_prompt = ", ".join(prompt_parts)
         
         # Set parameters based on style
         cfg = 3.0
         temperature = 1.0
-        
-        strong_styles = ["Techno", "Cyberpunk", "Dubstep", "Drum & Bass", "Industrial", "Hardstyle", "Gabber", "Metal", "Heavy Metal"]
-        organic_styles = ["Ambient", "Lo-Fi", "Chillout", "Jazz", "Bossa Nova", "Folk", "Acoustic", "Swing", "Reggae"]
-        orchestral_styles = ["Orchestral", "Cinematic", "Classical", "Baroque", "Rococo", "Opera"]
-        pop_styles = ["Pop", "K-Pop", "J-Pop", "Euro Pop", "Disco"]
 
         if style in strong_styles:
             cfg = 4.5 
@@ -483,6 +499,7 @@ class SonicSaver:
         return {"required": 
                     {"audio": ("AUDIO", ),
                      "filename_prefix": ("STRING", {"default": "music/Sonic"}),
+                     "format": (["wav", "mp3", "flac"], {"default": "wav"}),
                     }
                 }
 
@@ -491,7 +508,7 @@ class SonicSaver:
     OUTPUT_NODE = True
     CATEGORY = "Geekatplay Studio"
 
-    def save_audio(self, audio, filename_prefix="music/Sonic"):
+    def save_audio(self, audio, filename_prefix="music/Sonic", format="wav"):
         if "waveform" not in audio:
             print("SonicSaver: Audio input missing 'waveform'.")
             return ()
@@ -518,7 +535,7 @@ class SonicSaver:
         
         for (batch_number, waveform) in enumerate(waveform_tensor):
             filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
-            file = f"{filename_with_batch_num}_{counter:05}_.wav"
+            file = f"{filename_with_batch_num}_{counter:05}_.{format}"
             
             # Ensure target directory exists
             target_dir = os.path.dirname(os.path.join(full_output_folder, file))
@@ -526,16 +543,32 @@ class SonicSaver:
                 os.makedirs(target_dir, exist_ok=True)
                 
             try:
-                # Convert to numpy for soundfile
-                # waveform is [Channels, Length] -> transpose to [Length, Channels]
-                if waveform.dim() == 2:
-                     wav_data = waveform.transpose(0, 1).numpy() 
+                path = os.path.join(full_output_folder, file)
+                
+                # Check for MP3 specifically - Soundfile support for MP3 varies by install
+                if format == "mp3":
+                     # Try torchaudio first for MP3 (uses ffmpeg)
+                     try:
+                         torchaudio.save(path, waveform, sample_rate, format="mp3")
+                     except Exception as exc:
+                         print(f"SonicSaver: Torchaudio MP3 save failed ({exc}), trying soundfile...")
+                         # Fallback to soundfile (requires newer libsndfile)
+                         if waveform.dim() == 2:
+                             wav_data = waveform.transpose(0, 1).numpy() 
+                         else:
+                             wav_data = waveform.numpy()
+                         sf.write(path, wav_data, sample_rate, format="mp3")
                 else:
-                     wav_data = waveform.numpy()
+                    # WAV and FLAC -> use SoundFile (Robust)
+                    # waveform is [Channels, Length] -> transpose to [Length, Channels]
+                    if waveform.dim() == 2:
+                         wav_data = waveform.transpose(0, 1).numpy() 
+                    else:
+                         wav_data = waveform.numpy()
 
-                sf.write(os.path.join(full_output_folder, file), wav_data, sample_rate)
+                    sf.write(path, wav_data, sample_rate, format=format)
             except Exception as e:
-                print(f"SonicSaver Error: {e}")
+                print(f"SonicSaver Save Error: {e}")
 
             results.append({
                 "filename": file,

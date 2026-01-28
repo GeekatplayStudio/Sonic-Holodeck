@@ -1,15 +1,15 @@
 #!/bin/bash
 echo "Installing Geekatplay Studio's Sonic-Holodeck..."
 
-if [ ! -d "venv" ]; then
+if [ ! -d "../venv" ]; then
     echo "Creating virtual environment..."
-    python3 -m venv venv
+    python3 -m venv ../venv
 fi
 
-source venv/bin/activate
+source ../venv/bin/activate
 
 echo "Installing core requirements..."
-pip install -r requirements.txt --prefer-binary
+pip install -r ../requirements.txt --prefer-binary
 
 echo "Installing AudioCraft (no deps)..."
 pip install git+https://github.com/facebookresearch/audiocraft.git --no-deps

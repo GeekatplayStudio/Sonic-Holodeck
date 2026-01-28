@@ -3,9 +3,9 @@ setlocal enabledelayedexpansion
 echo Installing Geekatplay Studio's Sonic-Holodeck...
 
 :: 1. Try to find ComfyUI Embedded Python (Best for Portable Builds)
-if exist "..\..\..\python_embeded\python.exe" (
+if exist "..\..\..\..\python_embeded\python.exe" (
     echo Found ComfyUI Portable Python...
-    set "PYTHON_CMD=..\..\..\python_embeded\python.exe"
+    set "PYTHON_CMD=..\..\..\..\python_embeded\python.exe"
     goto :INSTALL_DEPS
 )
 
