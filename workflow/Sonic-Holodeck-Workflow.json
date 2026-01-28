@@ -5,6 +5,31 @@
   "last_link_id": 21,
   "nodes": [
     {
+      "id": 100,
+      "type": "Note",
+      "pos": [
+        120,
+        -250
+      ],
+      "size": [
+        600,
+        250
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "### Sonic-Holodeck (MusicGen) Setup\n\n**Installation:**\n- Run `install.bat` (Windows) or `install.sh` first to install dependencies.\n\n**Models:**\n- Uses `facebook/musicgen-stereo-large`.\n- Run `download_models.py` to pre-download models to HuggingFace Cache.\n- No need to copy models manually.\n\n**Usage:**\n- Select Prompt, BPM, Duration.\n- Queue Prompt."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
       "id": 1,
       "type": "SonicMixer",
       "pos": [
@@ -60,6 +85,12 @@
           "links": [
             5
           ]
+        },
+        {
+          "name": "lyrics_out",
+          "type": "STRING",
+          "slot_index": 5,
+          "links": null
         }
       ],
       "properties": {
@@ -70,8 +101,9 @@
       "widgets_values": [
         "Epic orchestral soundtrack, violin solo",
         "Cinematic",
+        "Instrumental",
         "Strings, Brass, Percussion",
-        "Robotic",
+        "None",
         120,
         10
       ]
@@ -155,11 +187,15 @@
         "Node name for S&R": "SonicHoloSynth"
       },
       "widgets_values": [
+        "facebook/musicgen-stereo-large",
         "",
         120,
         10,
         3,
         1,
+        250,
+        0.0,
+        "Auto-Master (Loud)",
         257497529536151,
         "randomize"
       ]

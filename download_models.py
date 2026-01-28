@@ -4,12 +4,12 @@ import sys
 def download_models():
     print("Downloading MusicGen Stereo Large and Dependencies...")
     try:
-        from huggingface_hub import hf_hub_download
+        from huggingface_hub import hf_hub_download, snapshot_download
     except ImportError:
         print("Installing huggingface_hub...")
         import subprocess
         subprocess.check_call([sys.executable, "-m", "pip", "install", "huggingface_hub"])
-        from huggingface_hub import hf_hub_download
+        from huggingface_hub import hf_hub_download, snapshot_download
 
     models_path = os.path.join(os.path.dirname(__file__), "models")
     os.makedirs(models_path, exist_ok=True)
@@ -28,6 +28,14 @@ def download_models():
             print(f"Downloaded {f} to {path}")
         except Exception as e:
             print(f"Skipping {f} or error: {e}")
+
+    # Download TangoFlux (High Fidelity)
+    print("\nDownloading TangoFlux model (declare-lab/TangoFlux)...")
+    try:
+        snapshot_download(repo_id="declare-lab/TangoFlux")
+        print("Downloaded TangoFlux successfully.")
+    except Exception as e:
+        print(f"Error downloading TangoFlux: {e}")
 
     print("\nModels specific to Sonic Holodeck setup are pre-cached.")
     print("When you run the node for the first time, AudioCraft will locate these in the cache.")

@@ -3,6 +3,31 @@
   "last_link_id": 5,
   "nodes": [
     {
+      "id": 100,
+      "type": "Note",
+      "pos": [
+        100,
+        -150
+      ],
+      "size": [
+        500,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "### Sonic-Holodeck Console\n\n**Setup:**\n- Run `install.bat` / `install.sh`.\n- Run `download_models.py`.\n- Models stored in HuggingFace Cache."
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
       "id": 1,
       "type": "SonicMixer",
       "pos": [
@@ -62,6 +87,13 @@
           ],
           "shape": 3,
           "slot_index": 4
+        },
+        {
+          "name": "lyrics_out",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "slot_index": 5
         }
       ],
       "properties": {
@@ -70,6 +102,7 @@
       "widgets_values": [
         "In the neon rain...",
         "Cyberpunk",
+        "Song",
         "Synthesizer, Drum Machine, Bass",
         "None",
         120,

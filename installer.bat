@@ -35,44 +35,43 @@ if not exist venv (
     !PYTHON_CMD! -m venv venv
 )
 call venv\Scripts\activate.bat
-goto :INSTALL_DEPS_VENV
+set "PYTHON_CMD=python"
+goto :INSTALL_DEPS
 
 :INSTALL_DEPS
 echo Using Python: !PYTHON_CMD!
 echo.
 echo ======================================================
-echo NOTE: Installing directly into ComfyUI environment.
+echo NOTE: Installing dependencies...
 echo ======================================================
+
+:: Upgrade pip
 !PYTHON_CMD! -m pip install --upgrade pip setuptools wheel
-!PYTHON_CMD! -m pip install -r requirements.txt --prefer-binary
+
+:: Install Generic Dependencies (Explicitly list them to ensure they install even if requirements.txt is empty)
+!PYTHON_CMD! -m pip install soundfile librosa protobuf pesq pystoi torchmetrics torchdiffeq matplotlib einops numpy scipy
+
+:: Install Safe Dependencies for Models (No heavy Torch deps)
+!PYTHON_CMD! -m pip install datasets diffusers transformers accelerate sentencepiece huggingface_hub
+
+:: Install Complex Audio Libraries via Git (No Deps to avoid Torch conflicts)
+echo Installing Tangoflux...
+!PYTHON_CMD! -m pip install tangoflux --no-deps
+
+echo Installing Demucs...
+!PYTHON_CMD! -m pip install git+https://github.com/facebookresearch/demucs.git@main#egg=demucs --no-deps
+
+echo Installing Bark...
+!PYTHON_CMD! -m pip install git+https://github.com/suno-ai/bark.git --no-deps
+
+echo Installing Audiocraft...
 !PYTHON_CMD! -m pip install git+https://github.com/facebookresearch/audiocraft.git --no-deps
-
-:FINISH
-echo.
-echo Installation Complete.
-pause
-exit /b 0
-
-:INSTALL_DEPS_VENV
-echo Using Virtual Environment Python: !PYTHON_CMD!
-!PYTHON_CMD! -m pip install --upgrade pip setuptools wheel
-!PYTHON_CMD! -m pip install -r requirements.txt --prefer-binary
-!PYTHON_CMD! -m pip install git+https://github.com/facebookresearch/audiocraft.git --no-deps
-goto :FINISH
-
-:INSTALL_DEPS_VENV
-echo Using Venv...
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt --prefer-binary
-pip install git+https://github.com/facebookresearch/audiocraft.git --no-deps
-pip install soundfile librosa protobuf pesq pystoi torchmetrics torchdiffeq
-goto :FINISH
-
-:FINISH
 
 echo.
 echo ===================================================
 echo INSTALLATION COMPLETE
-echo To start, run ComfyUI with this venv active.
+echo Please RESTART ComfyUI completely.
 echo ===================================================
+pause
+exit /b 0
 

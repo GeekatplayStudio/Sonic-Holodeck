@@ -28,6 +28,7 @@ def create_mock_module(name):
 # If it's missing (common on Windows Py3.13), we mock it to prevent crash.
 try:
     import xformers
+    import xformers.ops
 except ImportError:
     print("Sonic-Holodeck: 'xformers' not found. Mocking it to allow AudioCraft import.")
     xformers_mock = create_mock_module("xformers")
@@ -93,11 +94,15 @@ class SonicHoloSynth:
     def INPUT_TYPES(s):
         return {
             "required": {
+                "model_name": (["facebook/musicgen-stereo-large", "facebook/musicgen-large", "facebook/musicgen-stereo-medium", "facebook/musicgen-medium", "facebook/musicgen-small"], {"default": "facebook/musicgen-stereo-large"}),
                 "prompt": ("STRING", {"multiline": True, "default": "Cyberpunk city rain, neon lights, synthwave, slow tempo"}),
                 "bpm": ("INT", {"default": 120, "min": 60, "max": 200, "step": 1}),
                 "duration": ("INT", {"default": 10, "min": 1, "max": 300, "step": 1}),
-                "cfg": ("FLOAT", {"default": 3.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+                "cfg": ("FLOAT", {"default": 4.0, "min": 0.1, "max": 20.0, "step": 0.1}),
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
+                "top_k": ("INT", {"default": 250, "min": 10, "max": 1000}),
+                "top_p": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "mastering": (["Auto-Master (Loud)", "Soft Clip", "None"], {"default": "None"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
         }
@@ -107,7 +112,7 @@ class SonicHoloSynth:
     FUNCTION = "generate_music"
     CATEGORY = "Geekatplay Studio"
 
-    def apply_auto_mastering(self, wav, sample_rate):
+    def apply_auto_mastering(self, wav, sample_rate, mode="Auto-Master (Loud)"):
         """
         Applies a mastering chain:
         1. Soft-knee Compressor
@@ -119,12 +124,21 @@ class SonicHoloSynth:
         if wav.dim() == 3:
             wav = wav.squeeze(0)
             
+        if mode == "None":
+            return wav.unsqueeze(0)
+            
+        if mode == "Soft Clip":
+             # Simple compression without aggressive gain
+             return torch.tanh(wav).unsqueeze(0)
+        
+        # --- Auto-Master (Loud) ---
+        
         # 1. Simple Compression (Simulated using tanh for soft clipping/saturation)
         # Real compression requires stateful processing or complex envelope following. 
         # A soft clipper is a good approximation for "loudening" in a simple script.
         
         # Drive input slightly 
-        pre_gain = 1.5
+        pre_gain = 1.3 # Reduced from 1.5 to reduce distortion
         compressed = torch.tanh(wav * pre_gain)
         
         # 2. Normalize to Target Level
@@ -135,6 +149,8 @@ class SonicHoloSynth:
         
         if current_rms > 0:
             gain_adjust = target_rms / current_rms
+            # Cap gain adjustment to avoid noise floor explosion
+            gain_adjust = min(gain_adjust, 3.0) 
             mastered = compressed * gain_adjust
         else:
             mastered = compressed
@@ -146,22 +162,31 @@ class SonicHoloSynth:
         # Reshape back to [1, C, L] for ComfyUI if needed, but Comfy usually takes [C, L] or [1, C, L]
         return mastered.unsqueeze(0)
 
-    def generate_music(self, prompt, bpm, duration, cfg, temperature, seed):
+    def generate_music(self, model_name, prompt, bpm, duration, cfg, temperature, top_k, top_p, mastering, seed):
         try:
             from audiocraft.models import MusicGen
         except ImportError as e:
             raise ImportError(f"Failed to import audiocraft. Error: {e}")
 
-        if self.model is None:
-            print("Loading MusicGen Stereo Large model...")
-            self.model = MusicGen.get_pretrained('facebook/musicgen-stereo-large')
+        # Basic model caching by name
+        # If user switches model in dropdown, we need to reload. 
+        # For simplicity, we just store the last loaded model name.
+        if self.model is None or getattr(self, 'current_model_name', '') != model_name:
+            # Unload old model if needed (though Python GC handles this eventually)
+            if self.model is not None:
+                del self.model
+                torch.cuda.empty_cache()
+            
+            print(f"Loading MusicGen model: {model_name}...")
+            self.model = MusicGen.get_pretrained(model_name)
+            self.current_model_name = model_name
 
         torch.manual_seed(seed)
         
         self.model.set_generation_params(
             duration=duration, 
-            top_k=250, 
-            top_p=0.0, 
+            top_k=top_k, 
+            top_p=top_p, 
             temperature=temperature, 
             cfg_coef=cfg
         )
@@ -171,8 +196,8 @@ class SonicHoloSynth:
         wav = self.model.generate([prompt], progress=True)
 
         # Auto-Mastering
-        print("Applying Auto-Mastering...")
-        mastered_wav = self.apply_auto_mastering(wav.cpu(), self.model.sample_rate)
+        print(f"Applying Mastering: {mastering}...")
+        mastered_wav = self.apply_auto_mastering(wav.cpu(), self.model.sample_rate, mode=mastering)
 
         audio_output = {
             "waveform": mastered_wav, 
@@ -208,6 +233,14 @@ class SonicSinger:
     CATEGORY = "Geekatplay Studio"
 
     def sing(self, lyrics, voice_preset, mode):
+        # Graceful handling of empty lyrics (Silence)
+        if not lyrics or not lyrics.strip():
+            # Return 1 second of silence
+            print("SonicSinger: No lyrics provided, generating silence.")
+            # Standard Bark sample rate is 24000
+            silence = torch.zeros((1, 1, 24000), dtype=torch.float32)
+            return ({"waveform": silence, "sample_rate": 24000},)
+
         # Redirect Bark/Suno downloads to ComfyUI/models/suno
         import os
         # Bark uses XDG_CACHE_HOME/suno/bark_v0
@@ -284,6 +317,7 @@ class SonicMixer:
             "required": {
                 "lyrics": ("STRING", {"multiline": True, "default": "In the neon rain...", "placeholder": "Enter Lyrics here"}),
                 "style": (style_list, {"default": "Cyberpunk"}),
+                "mode": (["Song", "Instrumental"], {"default": "Song"}),
                 "instruments": ("STRING", {"default": "Synthesizer, Drum Machine, Bass", "multiline": False}),
                 "vocoder_fx": (["None", "Robotic", "Ethereal", "Distorted"],),
                 "bpm": ("INT", {"default": 120, "min": 40, "max": 240}),
@@ -296,7 +330,7 @@ class SonicMixer:
     FUNCTION = "mix_track"
     CATEGORY = "Geekatplay Studio"
 
-    def mix_track(self, lyrics, style, instruments, vocoder_fx, bpm, duration):
+    def mix_track(self, lyrics, style, mode, instruments, vocoder_fx, bpm, duration):
         # Construct a rich prompt for MusicGen
         prompt_parts = []
         
@@ -306,12 +340,18 @@ class SonicMixer:
         # Instruments
         if instruments:
             prompt_parts.append(f"featuring {instruments}")
-            
+        
         # Vocals/Lyrics intention
-        if lyrics.strip():
+        # Only add vocal keywords if mode is Song
+        if mode == "Song" and lyrics.strip():
             prompt_parts.append("with vocals, singing")
             if vocoder_fx != "None":
                 prompt_parts.append(f"{vocoder_fx} vocal effects")
+        else:
+            # Force instrumental prompt
+            prompt_parts.append("instrumental, no vocals")
+            # Clear lyrics output to silence Singer
+            lyrics = ""
         
         # BPM context
         prompt_parts.append(f"{bpm} bpm")
@@ -339,7 +379,7 @@ class SonicMixer:
         elif style in pop_styles:
             cfg = 3.2
              
-        # Pass lyrics through for vocal nodes
+        # Pass lyrics through for vocal nodes (empty if instrumental)
         return (final_prompt, bpm, duration, cfg, temperature, lyrics)
 
 class SonicTrackLayer:
@@ -452,21 +492,50 @@ class SonicSaver:
     CATEGORY = "Geekatplay Studio"
 
     def save_audio(self, audio, filename_prefix="music/Sonic"):
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir, audio["waveform"].shape[1], audio["waveform"].shape[0])
+        if "waveform" not in audio:
+            print("SonicSaver: Audio input missing 'waveform'.")
+            return ()
+            
+        waveform_tensor = audio["waveform"]
+        if waveform_tensor.is_cuda:
+            waveform_tensor = waveform_tensor.cpu()
+            
+        batch_size = waveform_tensor.shape[0]
+        channels = waveform_tensor.shape[1] if waveform_tensor.dim() > 1 else 1
+        
+        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir, channels, batch_size)
         results = list()
-        for (batch_number, waveform) in enumerate(audio["waveform"].cpu()):
+        
+        # Handle sample_rate safely (int or Tensor)
+        sample_rate = audio.get("sample_rate", 44100)
+        if isinstance(sample_rate, torch.Tensor):
+            sample_rate = int(sample_rate.item())
+        if not isinstance(sample_rate, int):
+            try:
+                 sample_rate = int(sample_rate)
+            except:
+                 sample_rate = 44100
+        
+        for (batch_number, waveform) in enumerate(waveform_tensor):
             filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
             file = f"{filename_with_batch_num}_{counter:05}_.wav"
             
-            # Ensure target directory exists (especially for music/ subfolder)
+            # Ensure target directory exists
             target_dir = os.path.dirname(os.path.join(full_output_folder, file))
             if not os.path.exists(target_dir):
                 os.makedirs(target_dir, exist_ok=True)
                 
-            # torchaudio.save(os.path.join(full_output_folder, file), waveform, audio["sample_rate"])
-            # Use soundfile directly to avoid TorchCodec dependency issues in torchaudio 2.9+
-            wav_data = waveform.transpose(0, 1).numpy()
-            sf.write(os.path.join(full_output_folder, file), wav_data, audio["sample_rate"])
+            try:
+                # Convert to numpy for soundfile
+                # waveform is [Channels, Length] -> transpose to [Length, Channels]
+                if waveform.dim() == 2:
+                     wav_data = waveform.transpose(0, 1).numpy() 
+                else:
+                     wav_data = waveform.numpy()
+
+                sf.write(os.path.join(full_output_folder, file), wav_data, sample_rate)
+            except Exception as e:
+                print(f"SonicSaver Error: {e}")
 
             results.append({
                 "filename": file,
@@ -576,8 +645,65 @@ class SonicWaveform:
 
         return (img_tensor,)
 
+class SonicFluxSynth:
+    """
+    High-Fidelity Audio Generator using TangoFlux (Flow Matching).
+    """
+    def __init__(self):
+        self.model = None
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "prompt": ("STRING", {"multiline": True, "default": "Cinematic atmosphere, high fidelity, 4k audio, deep bass, synthesizer"}),
+                "duration": ("INT", {"default": 10, "min": 1, "max": 30, "step": 1}),
+                "steps": ("INT", {"default": 25, "min": 10, "max": 100, "step": 1}),
+                "guidance_scale": ("FLOAT", {"default": 4.5, "min": 1.0, "max": 20.0, "step": 0.1}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO",)
+    RETURN_NAMES = ("audio",)
+    FUNCTION = "generate"
+    CATEGORY = "Geekatplay Studio"
+
+    def generate(self, prompt, duration, steps, guidance_scale, seed):
+        try:
+            from tangoflux import TangoFluxInference
+        except ImportError:
+            raise ImportError("SonicFluxSynth: 'tangoflux' library not found. Please run 'pip install tangoflux diffusers transformers accelerate'.")
+
+        if self.model is None:
+            print("Loading TangoFlux (declare-lab/TangoFlux)...")
+            # Loads from cache or downloads
+            self.model = TangoFluxInference(name='declare-lab/TangoFlux')
+
+        torch.manual_seed(seed)
+        
+        print(f"Generating Flux audio: '{prompt}' (Steps: {steps}, CFG: {guidance_scale})...")
+        try:
+            audio = self.model.generate(prompt, steps=steps, duration=duration, guidance_scale=guidance_scale)
+        except Exception as e:
+             # Fallback for API changes or issues
+             print(f"Error in TangoFlux generation: {e}")
+             raise e
+
+        # TangoFlux returns usually [Channels, Length] tensor.
+        # It operates at 44.1kHz.
+        
+        # Ensure format [1, Channels, Length] for ComfyUI audio dict
+        if audio.dim() == 1:
+            audio = audio.unsqueeze(0).unsqueeze(0) # [1, 1, L]
+        elif audio.dim() == 2:
+            audio = audio.unsqueeze(0) # [1, C, L]
+            
+        return ({"waveform": audio.cpu(), "sample_rate": 44100},)
+
 NODE_CLASS_MAPPINGS = {
     "SonicHoloSynth": SonicHoloSynth,
+    "SonicFluxSynth": SonicFluxSynth,
     "SonicMixer": SonicMixer,
     "SonicSinger": SonicSinger,
     "SonicTrackLayer": SonicTrackLayer,
@@ -588,7 +714,9 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SonicHoloSynth": "Sonic-Holodeck 🎧",
+    "SonicFluxSynth": "Sonic Flux (High Quality) 🌟",
     "SonicMixer": "Sonic DJ Mixer 🎛️",
+
     "SonicSinger": "Sonic Singer (Bark) 🎤",
     "SonicTrackLayer": "Sonic Trace Layer (Mixer) 🎚️",
     "SonicSaver": "Sonic Saver (Music) 💾"

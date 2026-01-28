@@ -1,1 +1,636 @@
-{"id":"54ea9350-a996-46fd-af39-2fc5eece481e","revision":2,"last_node_id":14,"last_link_id":25,"nodes":[{"id":1,"type":"SonicMixer","pos":[50,56],"size":[600,480],"flags":{},"order":0,"mode":0,"inputs":[{"localized_name":"lyrics","name":"lyrics","type":"STRING","widget":{"name":"lyrics"},"link":null},{"localized_name":"style","name":"style","type":"COMBO","widget":{"name":"style"},"link":null},{"localized_name":"instruments","name":"instruments","type":"STRING","widget":{"name":"instruments"},"link":null},{"localized_name":"vocoder_fx","name":"vocoder_fx","type":"COMBO","widget":{"name":"vocoder_fx"},"link":null},{"localized_name":"bpm","name":"bpm","type":"INT","widget":{"name":"bpm"},"link":null},{"localized_name":"duration","name":"duration","type":"INT","widget":{"name":"duration"},"link":null}],"outputs":[{"localized_name":"constructed_prompt","name":"constructed_prompt","type":"STRING","slot_index":0,"links":[1]},{"localized_name":"bpm","name":"bpm","type":"INT","slot_index":1,"links":[2]},{"localized_name":"duration","name":"duration","type":"INT","slot_index":2,"links":[3]},{"localized_name":"cfg","name":"cfg","type":"FLOAT","slot_index":3,"links":[4]},{"localized_name":"temperature","name":"temperature","type":"FLOAT","slot_index":4,"links":[5]},{"localized_name":"lyrics_out","name":"lyrics_out","type":"STRING","slot_index":5,"links":[13]}],"properties":{"aux_id":"GeekatplayStudio/Sonic-Holodeck","ver":"1d0f427","Node name for S&R":"SonicMixer"},"widgets_values":["[verse]\nNeon city lights,\nShining through the rain.\nCybernetic dreams,\nEasing all the pain.\n\n[chorus]\nWe are the future,\nCoding the night.\nSonic holodeck,\nBurning so bright!","K-Pop","Synthesizer, Heavy Bass, Pop Vocals","None",128,20]},{"id":2,"type":"SonicHoloSynth","pos":[700,56],"size":[600,360],"flags":{},"order":2,"mode":0,"inputs":[{"localized_name":"prompt","name":"prompt","type":"STRING","widget":{"name":"prompt"},"link":1},{"localized_name":"bpm","name":"bpm","type":"INT","widget":{"name":"bpm"},"link":2},{"localized_name":"duration","name":"duration","type":"INT","widget":{"name":"duration"},"link":3},{"localized_name":"cfg","name":"cfg","type":"FLOAT","widget":{"name":"cfg"},"link":4},{"localized_name":"temperature","name":"temperature","type":"FLOAT","widget":{"name":"temperature"},"link":5},{"localized_name":"seed","name":"seed","type":"INT","widget":{"name":"seed"},"link":null}],"outputs":[{"localized_name":"audio","name":"audio","type":"AUDIO","slot_index":0,"links":[14]}],"properties":{"aux_id":"GeekatplayStudio/Sonic-Holodeck","ver":"1d0f427","Node name for S&R":"SonicHoloSynth"},"widgets_values":["",128,20,3.2,1,0,"randomize"]},{"id":11,"type":"SonicSinger","pos":[700,450],"size":[600,280],"flags":{},"order":1,"mode":0,"inputs":[{"localized_name":"lyrics","name":"lyrics","type":"STRING","widget":{"name":"lyrics"},"link":13},{"localized_name":"voice_preset","name":"voice_preset","type":"COMBO","widget":{"name":"voice_preset"},"link":null},{"localized_name":"mode","name":"mode","type":"COMBO","widget":{"name":"mode"},"link":null}],"outputs":[{"localized_name":"vocal_audio","name":"vocal_audio","type":"AUDIO","slot_index":0,"links":[15]}],"properties":{"Node name for S&R":"SonicSinger"},"widgets_values":["","v2/en_speaker_6","text"]},{"id":12,"type":"SonicTrackLayer","pos":[1350,200],"size":[400,220],"flags":{},"order":3,"mode":0,"inputs":[{"localized_name":"backing_audio","name":"backing_audio","type":"AUDIO","link":14},{"localized_name":"vocal_audio","name":"vocal_audio","type":"AUDIO","link":15},{"localized_name":"backing_volume","name":"backing_volume","type":"FLOAT","widget":{"name":"backing_volume"},"link":null},{"localized_name":"vocal_volume","name":"vocal_volume","type":"FLOAT","widget":{"name":"vocal_volume"},"link":null},{"localized_name":"alignment","name":"alignment","type":"COMBO","widget":{"name":"alignment"},"link":null}],"outputs":[{"localized_name":"AUDIO","name":"AUDIO","type":"AUDIO","slot_index":0,"links":[6,7,8]}],"properties":{"Node name for S&R":"SonicTrackLayer"},"widgets_values":[0.8,1.2,"start"]},{"id":3,"type":"SonicSaver","pos":[1800,56],"size":[360,120],"flags":{},"order":4,"mode":0,"inputs":[{"localized_name":"audio","name":"audio","type":"AUDIO","link":6},{"localized_name":"filename_prefix","name":"filename_prefix","type":"STRING","widget":{"name":"filename_prefix"},"link":null}],"outputs":[],"properties":{"aux_id":"GeekatplayStudio/Sonic-Holodeck","ver":"1d0f427","Node name for S&R":"SonicSaver"},"widgets_values":["SonicHolodeck/Output"]},{"id":4,"type":"SonicSpectrogram","pos":[1800,250],"size":[360,180],"flags":{},"order":5,"mode":0,"inputs":[{"localized_name":"audio","name":"audio","type":"AUDIO","link":7},{"localized_name":"n_fft","name":"n_fft","type":"INT","widget":{"name":"n_fft"},"link":null},{"localized_name":"hop_length","name":"hop_length","type":"INT","widget":{"name":"hop_length"},"link":null},{"localized_name":"cmap","name":"cmap","type":"COMBO","widget":{"name":"cmap"},"link":null}],"outputs":[{"localized_name":"IMAGE","name":"IMAGE","type":"IMAGE","slot_index":0,"links":[9]}],"properties":{"aux_id":"GeekatplayStudio/Sonic-Holodeck","ver":"1d0f427","Node name for S&R":"SonicSpectrogram"},"widgets_values":[2048,512,"inferno"]},{"id":5,"type":"PreviewImage","pos":[2200,250],"size":[500,300],"flags":{},"order":7,"mode":0,"inputs":[{"localized_name":"images","name":"images","type":"IMAGE","link":9}],"outputs":[],"properties":{"cnr_id":"comfy-core","ver":"0.10.0","Node name for S&R":"PreviewImage"},"widgets_values":[]},{"id":6,"type":"SonicWaveform","pos":[1800,500],"size":[360,180],"flags":{},"order":6,"mode":0,"inputs":[{"localized_name":"audio","name":"audio","type":"AUDIO","link":8},{"localized_name":"resample_factor","name":"resample_factor","type":"INT","widget":{"name":"resample_factor"},"link":null},{"localized_name":"color","name":"color","type":"COMBO","widget":{"name":"color"},"link":null},{"localized_name":"bg_color","name":"bg_color","type":"COMBO","widget":{"name":"bg_color"},"link":null}],"outputs":[{"localized_name":"IMAGE","name":"IMAGE","type":"IMAGE","slot_index":0,"links":[10]}],"properties":{"aux_id":"GeekatplayStudio/Sonic-Holodeck","ver":"1d0f427","Node name for S&R":"SonicWaveform"},"widgets_values":[1,"cyan","black"]},{"id":7,"type":"PreviewImage","pos":[2200,560],"size":[500,300],"flags":{},"order":8,"mode":0,"inputs":[{"localized_name":"images","name":"images","type":"IMAGE","link":10}],"outputs":[],"properties":{"cnr_id":"comfy-core","ver":"0.10.0","Node name for S&R":"PreviewImage"},"widgets_values":[]},{"id":8,"type":"Note","pos":[50,600],"size":[400,400],"flags":{},"order":1,"mode":0,"inputs":[],"outputs":[],"properties":{"text":""},"widgets_values":["### Sonic-Holodeck Workflow V2\n\n**New Features:**\n- **Expanded Styles:** 40+ genres including K-Pop, Rococo, Swing, Metal, etc.\n- **Vocal Production:** Lyrics are passed to the Sonic Singer node (Bark).\n- **Track Mixing:** The backing track and vocals are mixed in 'Sonic Track Layer'.\n\n**Instructions:**\n1. Select a **Style** in the Mixer.\n2. Write your **Lyrics**.\n3. (Optional) Adjust **Vocals Volume** in the Track Layer.\n4. **Queue Prompt**.\n\n**Using Sonic Singer (Bark):**\n- Bark can be slow. Be patient.\n- Use `[verse]` and `[chorus]` tags in lyrics for better prosody.\n- Try different `voice_preset` options.\n\n**Visualizers:**\n- Spectrogram and Waveform nodes visualize the final mixed audio."],"color":"#2a5","bgcolor":"#234"}],"links":[[1,1,0,2,0,"STRING"],[2,1,1,2,1,"INT"],[3,1,2,2,2,"INT"],[4,1,3,2,3,"FLOAT"],[5,1,4,2,4,"FLOAT"],[6,12,0,3,0,"AUDIO"],[7,12,0,4,0,"AUDIO"],[8,12,0,6,0,"AUDIO"],[9,4,0,5,0,"IMAGE"],[10,6,0,7,0,"IMAGE"],[13,1,5,11,0,"STRING"],[14,2,0,12,0,"AUDIO"],[15,11,0,12,1,"AUDIO"]],"groups":[],"config":{},"extra":{"workflowRendererVersion":"Vue","ds":{"scale":0.8,"offset":[73.19318181818176,82.72727272727275]}},"version":0.4}
+{
+  "id": "54ea9350-a996-46fd-af39-2fc5eece481e",
+  "revision": 2,
+  "last_node_id": 15,
+  "last_link_id": 26,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "SonicMixer",
+      "pos": [
+        -91.72528609281085,
+        66.24520304424335
+      ],
+      "size": [
+        600,
+        450
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "constructed_prompt",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": [
+            1,
+            26
+          ]
+        },
+        {
+          "name": "bpm",
+          "type": "INT",
+          "slot_index": 1,
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "slot_index": 2,
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "cfg",
+          "type": "FLOAT",
+          "slot_index": 3,
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "temperature",
+          "type": "FLOAT",
+          "slot_index": 4,
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "lyrics_out",
+          "type": "STRING",
+          "slot_index": 5,
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "1d0f427",
+        "Node name for S&R": "SonicMixer"
+      },
+      "widgets_values": [
+        "[verse]\nNeon city lights,\nShining through the rain.\nCybernetic dreams,\nEasing all the pain.\n\n[chorus]\nWe are the future,\nCoding the night.\nSonic holodeck,\nBurning so bright!",
+        "K-Pop",
+        "Song",
+        "Synthesizer, Heavy Bass, Pop Vocals",
+        "None",
+        128,
+        20
+      ]
+    },
+    {
+      "id": 2,
+      "type": "SonicHoloSynth",
+      "pos": [
+        700.0000249689276,
+        56.00000121376729
+      ],
+      "size": [
+        600,
+        330
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 1
+        },
+        {
+          "name": "bpm",
+          "type": "INT",
+          "widget": {
+            "name": "bpm"
+          },
+          "link": 2
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "widget": {
+            "name": "duration"
+          },
+          "link": 3
+        },
+        {
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": 4
+        },
+        {
+          "name": "temperature",
+          "type": "FLOAT",
+          "widget": {
+            "name": "temperature"
+          },
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "slot_index": 0,
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "bpm_out",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "1d0f427",
+        "Node name for S&R": "SonicHoloSynth"
+      },
+      "widgets_values": [
+        "facebook/musicgen-stereo-large",
+        "",
+        128,
+        20,
+        3.2,
+        1,
+        250,
+        0.0,
+        "Auto-Master (Loud)",
+        829691938086467,
+        "randomize"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "SonicSinger",
+      "pos": [
+        700.0000249689276,
+        450.0000069358132
+      ],
+      "size": [
+        600,
+        250
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "lyrics",
+          "type": "STRING",
+          "widget": {
+            "name": "lyrics"
+          },
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "vocal_audio",
+          "type": "AUDIO",
+          "slot_index": 0,
+          "links": [
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "2e8a2cc77af30e21daf07fd17a035c0afcf0083e",
+        "Node name for S&R": "SonicSinger"
+      },
+      "widgets_values": [
+        "",
+        "v2/en_speaker_6",
+        "text"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "SonicTrackLayer",
+      "pos": [
+        1350.0000249689276,
+        200.0000069358132
+      ],
+      "size": [
+        400,
+        190
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "backing_audio",
+          "type": "AUDIO",
+          "link": 14
+        },
+        {
+          "name": "vocal_audio",
+          "type": "AUDIO",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "slot_index": 0,
+          "links": [
+            6,
+            7,
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "2e8a2cc77af30e21daf07fd17a035c0afcf0083e",
+        "Node name for S&R": "SonicTrackLayer"
+      },
+      "widgets_values": [
+        0.8,
+        1.2,
+        "start"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SonicSaver",
+      "pos": [
+        1800.0000249689276,
+        56.00000121376729
+      ],
+      "size": [
+        360,
+        90
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "1d0f427",
+        "Node name for S&R": "SonicSaver"
+      },
+      "widgets_values": [
+        "SonicHolodeck/Output"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "SonicSpectrogram",
+      "pos": [
+        1800.0000249689276,
+        250.0000069358132
+      ],
+      "size": [
+        360,
+        150
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "1d0f427",
+        "Node name for S&R": "SonicSpectrogram"
+      },
+      "widgets_values": [
+        2048,
+        512,
+        "inferno"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "pos": [
+        2200.0000249689274,
+        250.0000069358132
+      ],
+      "size": [
+        500,
+        270
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 6,
+      "type": "SonicWaveform",
+      "pos": [
+        1800.0000249689276,
+        500.0000069358132
+      ],
+      "size": [
+        360,
+        150
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "1d0f427",
+        "Node name for S&R": "SonicWaveform"
+      },
+      "widgets_values": [
+        1,
+        "cyan",
+        "black"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "PreviewImage",
+      "pos": [
+        2200.0000249689274,
+        560.0000069358132
+      ],
+      "size": [
+        500,
+        270
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.10.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 8,
+      "type": "Note",
+      "pos": [
+        50.00000589544129,
+        600.0000069358132
+      ],
+      "size": [
+        400,
+        370
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "### Sonic-Holodeck Workflow V2\n\n**Usage Instructions:**\n1. **Mode:** Select 'Song' for vocals or 'Instrumental' to disable them.\n2. **Style:** Select a genre (e.g., K-Pop, Cinematic).\n3. **Lyrics:** Enter lyrics if in Song mode.\n4. **Queue Prompt**.\n\n**Models:**\n- Run `download_models.py` to get standard models.\n- Run `install.bat` / `install.sh` for dependencies.\n\n**Tips:**\n- Use `[verse]` and `[chorus]` tags for better singing.\n- If vocals are too quiet, increase 'Vocal Volume' in the Track Layer."
+      ],
+      "color": "#2a5",
+      "bgcolor": "#234"
+    },
+    {
+      "id": 15,
+      "type": "PreviewAny",
+      "pos": [
+        696.0862947621356,
+        -217.90033033434375
+      ],
+      "size": [
+        568.171875,
+        222.3125
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 26
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.11.0",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [
+        null,
+        null,
+        false
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      1,
+      1,
+      2,
+      1,
+      "INT"
+    ],
+    [
+      3,
+      1,
+      2,
+      2,
+      2,
+      "INT"
+    ],
+    [
+      4,
+      1,
+      3,
+      2,
+      3,
+      "FLOAT"
+    ],
+    [
+      5,
+      1,
+      4,
+      2,
+      4,
+      "FLOAT"
+    ],
+    [
+      6,
+      12,
+      0,
+      3,
+      0,
+      "AUDIO"
+    ],
+    [
+      7,
+      12,
+      0,
+      4,
+      0,
+      "AUDIO"
+    ],
+    [
+      8,
+      12,
+      0,
+      6,
+      0,
+      "AUDIO"
+    ],
+    [
+      9,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      10,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      13,
+      1,
+      5,
+      11,
+      0,
+      "STRING"
+    ],
+    [
+      14,
+      2,
+      0,
+      12,
+      0,
+      "AUDIO"
+    ],
+    [
+      15,
+      11,
+      0,
+      12,
+      1,
+      "AUDIO"
+    ],
+    [
+      26,
+      1,
+      0,
+      15,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflowRendererVersion": "Vue",
+    "ds": {
+      "scale": 0.8800000000000001,
+      "offset": [
+        265.2773416015007,
+        355.40035460968994
+      ]
+    },
+    "frontendVersion": "1.37.11",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
