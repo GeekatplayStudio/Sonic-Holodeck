@@ -39,6 +39,27 @@ def download_models():
     except Exception as e:
         print(f"Error downloading TangoFlux: {e}")
 
+    # Download HeartMuLa (Vocals) - Sharded Model
+    print("\nDownloading HeartMuLa model (HeartMuLa/HeartMuLa-oss-3B)...")
+    try:
+        # Calculate ComfyUI checkpoints directory
+        # project_root is custom_nodes/Sonic-Holodeck
+        custom_nodes_dir = os.path.dirname(project_root)
+        comfy_root = os.path.dirname(custom_nodes_dir)
+        checkpoints_dir = os.path.join(comfy_root, "models", "checkpoints")
+        
+        heartmula_dir = os.path.join(checkpoints_dir, "HeartMuLa-oss-3B")
+        
+        print(f"Target directory: {heartmula_dir}")
+        snapshot_download(
+            repo_id="HeartMuLa/HeartMuLa-oss-3B", 
+            local_dir=heartmula_dir, 
+            local_dir_use_symlinks=False
+        )
+        print("Downloaded HeartMuLa successfully.")
+    except Exception as e:
+        print(f"Error downloading HeartMuLa: {e}")
+
     print("\nModels specific to Sonic Holodeck setup are pre-cached.")
     print("When you run the node for the first time, AudioCraft will locate these in the cache.")
 

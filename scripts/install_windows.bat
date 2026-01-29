@@ -47,9 +47,11 @@ echo ======================================================
 
 :: Upgrade pip
 !PYTHON_CMD! -m pip install --upgrade pip setuptools wheel
+!PYTHON_CMD! -m pip install -U "huggingface_hub[cli]"
 
 :: Install Generic Dependencies (Explicitly list them to ensure they install even if requirements.txt is empty)
-!PYTHON_CMD! -m pip install soundfile librosa protobuf pesq pystoi torchmetrics torchdiffeq matplotlib einops numpy scipy
+:: removed pesq to avoid C++ build errors on Windows (Mocked in nodes.py)
+!PYTHON_CMD! -m pip install soundfile librosa protobuf pystoi torchmetrics torchdiffeq matplotlib einops numpy scipy
 
 :: Install Safe Dependencies for Models (No heavy Torch deps)
 !PYTHON_CMD! -m pip install datasets diffusers transformers accelerate sentencepiece huggingface_hub

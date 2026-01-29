@@ -16,6 +16,46 @@ import io
 import librosa
 import soundfile as sf
 from PIL import Image
+import gc
+
+# --- Global Model Management ---
+# Ensures only one heavy audio model is in VRAM at a time.
+SONIC_MODEL_CACHE = {
+    "active_key": None,
+    "active_model": None
+}
+
+def load_sonic_model(key, loader_func):
+    current_key = SONIC_MODEL_CACHE["active_key"]
+    
+    if current_key == key and SONIC_MODEL_CACHE["active_model"] is not None:
+        return SONIC_MODEL_CACHE["active_model"]
+        
+    # Unload existing
+    if SONIC_MODEL_CACHE["active_model"] is not None:
+        print(f"Sonic-Holodeck: Unloading {current_key} to load {key}...")
+        del SONIC_MODEL_CACHE["active_model"]
+        SONIC_MODEL_CACHE["active_model"] = None
+        SONIC_MODEL_CACHE["active_key"] = None
+        gc.collect()
+        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.ipc_collect()
+    
+    # Load new
+    print(f"Sonic-Holodeck: Loading {key}...")
+    model = loader_func()
+    SONIC_MODEL_CACHE["active_key"] = key
+    SONIC_MODEL_CACHE["active_model"] = model
+    return model
+# -------------------------------
+
+# Import Custom Submodules
+try:
+    from .nodes_heartmula import SonicHeartMuLaLoader
+except ImportError:
+    SonicHeartMuLaLoader = None
+    print("Sonic-Holodeck: Could not import valid HeartMuLa loader.")
 
 def create_mock_module(name):
     mock = types.ModuleType(name)
@@ -87,14 +127,13 @@ class SonicHoloSynth:
     """
     
     def __init__(self):
-        self.model = None
-        self.processor = None
+        pass # Managed globally
 
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model_name": (["facebook/musicgen-stereo-large", "facebook/musicgen-large", "facebook/musicgen-stereo-medium", "facebook/musicgen-medium", "facebook/musicgen-small"], {"default": "facebook/musicgen-stereo-large"}),
+                "model_name": (["facebook/musicgen-stereo-large", "facebook/musicgen-melody", "facebook/musicgen-large", "facebook/musicgen-stereo-medium", "facebook/musicgen-medium", "facebook/musicgen-small"], {"default": "facebook/musicgen-stereo-large"}),
                 "prompt": ("STRING", {"multiline": True, "default": "Cyberpunk city rain, neon lights, synthwave, slow tempo"}),
                 "bpm": ("INT", {"default": 120, "min": 60, "max": 200, "step": 1}),
                 "duration": ("INT", {"default": 10, "min": 1, "max": 300, "step": 1}),
@@ -104,6 +143,9 @@ class SonicHoloSynth:
                 "top_p": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "mastering": (["Auto-Master (Loud)", "Soft Clip", "None"], {"default": "None"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            },
+            "optional": {
+                "melody_audio": ("AUDIO",),
             }
         }
 
@@ -162,28 +204,21 @@ class SonicHoloSynth:
         # Reshape back to [1, C, L] for ComfyUI if needed, but Comfy usually takes [C, L] or [1, C, L]
         return mastered.unsqueeze(0)
 
-    def generate_music(self, model_name, prompt, bpm, duration, cfg, temperature, top_k, top_p, mastering, seed):
+    def generate_music(self, model_name, prompt, bpm, duration, cfg, temperature, top_k, top_p, mastering, seed, melody_audio=None):
         try:
             from audiocraft.models import MusicGen
         except ImportError as e:
             raise ImportError(f"Failed to import audiocraft. Error: {e}")
 
-        # Basic model caching by name
-        # If user switches model in dropdown, we need to reload. 
-        # For simplicity, we just store the last loaded model name.
-        if self.model is None or getattr(self, 'current_model_name', '') != model_name:
-            # Unload old model if needed (though Python GC handles this eventually)
-            if self.model is not None:
-                del self.model
-                torch.cuda.empty_cache()
-            
-            print(f"Loading MusicGen model: {model_name}...")
-            self.model = MusicGen.get_pretrained(model_name)
-            self.current_model_name = model_name
+        # Use Global Cache
+        def _load():
+            return MusicGen.get_pretrained(model_name)
+
+        model = load_sonic_model(f"MusicGen:{model_name}", _load)
 
         torch.manual_seed(seed)
         
-        self.model.set_generation_params(
+        model.set_generation_params(
             duration=duration, 
             top_k=top_k, 
             top_p=top_p, 
@@ -192,16 +227,42 @@ class SonicHoloSynth:
         )
 
         print(f"Generating audio: '{prompt}' (BPM: {bpm})...")
-        # Wav is [batch, channels, length]
-        wav = self.model.generate([prompt], progress=True)
+        
+        # Determine Generation Mode (Text-to-Music vs Melody-to-Music)
+        wav = None
+        if melody_audio is not None:
+             print("Sonic: Melody Audio detected! Switching to Melody Conditioning.")
+             # melody_audio is {"waveform": [1, C, L], "sample_rate": int}
+             melody_wav = melody_audio["waveform"]
+             melody_sr = melody_audio["sample_rate"]
+             
+             # AudioCraft expects [B, C, L]
+             if melody_wav.dim() == 2:
+                  melody_wav = melody_wav.unsqueeze(0)
+             
+             # Ensure inputs match
+             # Note: generate_with_chroma automatically handles resampling if we pass the sample rate
+             try:
+                wav = model.generate_with_chroma(
+                    [prompt], 
+                    melody_wavs=melody_wav, 
+                    melody_sample_rate=melody_sr, 
+                    progress=True
+                )
+             except Exception as e:
+                print(f"Sonic: Melody Generation Failed ({e}). Falling back to text generation. (Did you select a 'melody' capable model?)")
+                wav = model.generate([prompt], progress=True)
+        else:
+             # Standard Text-to-Music
+             wav = model.generate([prompt], progress=True)
 
         # Auto-Mastering
         print(f"Applying Mastering: {mastering}...")
-        mastered_wav = self.apply_auto_mastering(wav.cpu(), self.model.sample_rate, mode=mastering)
+        mastered_wav = self.apply_auto_mastering(wav.cpu(), model.sample_rate, mode=mastering)
 
         audio_output = {
             "waveform": mastered_wav, 
-            "sample_rate": self.model.sample_rate
+            "sample_rate": model.sample_rate
         }
 
         return (audio_output, float(bpm))
@@ -408,10 +469,12 @@ class SonicTrackLayer:
         return {
             "required": {
                 "backing_audio": ("AUDIO",),
-                "vocal_audio": ("AUDIO",),
                 "backing_volume": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "vocal_volume": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "alignment": (["start", "center", "loop_backing", "loop_vocals"], {"default": "start"}),
+            },
+            "optional": {
+                "vocal_audio": ("AUDIO",),
             }
         }
 
@@ -419,12 +482,18 @@ class SonicTrackLayer:
     FUNCTION = "mix_tracks"
     CATEGORY = "Geekatplay Studio"
 
-    def mix_tracks(self, backing_audio, vocal_audio, backing_volume, vocal_volume, alignment):
+    def mix_tracks(self, backing_audio, backing_volume, vocal_volume, alignment, vocal_audio=None):
         # Unpack
         # ComfyUI audio format: {"waveform": [batch, channels, time], "sample_rate": int}
         b_wav = backing_audio["waveform"]
         b_sr = backing_audio["sample_rate"]
         
+        if vocal_audio is None:
+             # Just return backing audio adjusted by volume
+             mixed = b_wav * backing_volume
+             mixed = torch.tanh(mixed)
+             return ({"waveform": mixed, "sample_rate": b_sr},)
+
         v_wav = vocal_audio["waveform"]
         v_sr = vocal_audio["sample_rate"] # Likely 24k for Bark vs 32k/44k for MusicGen
 
@@ -545,6 +614,11 @@ class SonicSaver:
             try:
                 path = os.path.join(full_output_folder, file)
                 
+                # Debug Info
+                print(f"SonicSaver: Saving {file} | Shape: {waveform.shape} | Sample Rate: {sample_rate}")
+                if waveform.numel() == 0:
+                     print("SonicSaver: WARNING - Audio tensor is empty!")
+
                 # Check for MP3 specifically - Soundfile support for MP3 varies by install
                 if format == "mp3":
                      # Try torchaudio first for MP3 (uses ffmpeg)
@@ -562,7 +636,14 @@ class SonicSaver:
                     # WAV and FLAC -> use SoundFile (Robust)
                     # waveform is [Channels, Length] -> transpose to [Length, Channels]
                     if waveform.dim() == 2:
-                         wav_data = waveform.transpose(0, 1).numpy() 
+                         # Check if we accidentally have [Length, Channels] instead of [Channels, Length]
+                         # Heuristic: Channels is usually small (1 or 2). Length is large.
+                         if waveform.shape[0] > 10 and waveform.shape[1] <= 2:
+                              print("SonicSaver: Detected [Samples, Channels] format. No transpose needed.")
+                              wav_data = waveform.numpy()
+                         else:
+                              # Standard [Channels, Samples] -> Transpose to [Samples, Channels]
+                              wav_data = waveform.transpose(0, 1).numpy() 
                     else:
                          wav_data = waveform.numpy()
 
@@ -683,16 +764,17 @@ class SonicFluxSynth:
     High-Fidelity Audio Generator using TangoFlux (Flow Matching).
     """
     def __init__(self):
-        self.model = None
+        pass # Managed globally
 
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
+                "model_path": ("STRING", {"default": "declare-lab/TangoFlux"}),
                 "prompt": ("STRING", {"multiline": True, "default": "Cinematic atmosphere, high fidelity, 4k audio, deep bass, synthesizer"}),
                 "duration": ("INT", {"default": 10, "min": 1, "max": 30, "step": 1}),
-                "steps": ("INT", {"default": 25, "min": 10, "max": 100, "step": 1}),
-                "guidance_scale": ("FLOAT", {"default": 4.5, "min": 1.0, "max": 20.0, "step": 0.1}),
+                "steps": ("INT", {"default": 25, "min": 1, "max": 100, "step": 1}),
+                "guidance_scale": ("FLOAT", {"default": 4.5, "min": 0.0, "max": 20.0, "step": 0.1}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
         }
@@ -702,22 +784,23 @@ class SonicFluxSynth:
     FUNCTION = "generate"
     CATEGORY = "Geekatplay Studio"
 
-    def generate(self, prompt, duration, steps, guidance_scale, seed):
+    def generate(self, model_path, prompt, duration, steps, guidance_scale, seed):
         try:
             from tangoflux import TangoFluxInference
         except ImportError:
             raise ImportError("SonicFluxSynth: 'tangoflux' library not found. Please run 'pip install tangoflux diffusers transformers accelerate'.")
 
-        if self.model is None:
-            print("Loading TangoFlux (declare-lab/TangoFlux)...")
-            # Loads from cache or downloads
-            self.model = TangoFluxInference(name='declare-lab/TangoFlux')
+        # Use Global Cache
+        def _load():
+            return TangoFluxInference(name=model_path)
+
+        model = load_sonic_model(f"TangoFlux:{model_path}", _load)
 
         torch.manual_seed(seed)
         
         print(f"Generating Flux audio: '{prompt}' (Steps: {steps}, CFG: {guidance_scale})...")
         try:
-            audio = self.model.generate(prompt, steps=steps, duration=duration, guidance_scale=guidance_scale)
+            audio = model.generate(prompt, steps=steps, duration=duration, guidance_scale=guidance_scale)
         except Exception as e:
              # Fallback for API changes or issues
              print(f"Error in TangoFlux generation: {e}")
@@ -734,6 +817,84 @@ class SonicFluxSynth:
             
         return ({"waveform": audio.cpu(), "sample_rate": 44100},)
 
+class SonicMicrophoneV3:
+    """
+    Captures live audio from the microphone (requires browser support via Custom Node UI).
+    Expects base64 encoded audio or filename from the frontend.
+    """
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "duration_seconds": ("FLOAT", {"default": 10.0, "min": 0.1, "max": 600.0, "step": 0.1}),
+                "audio_data": ("STRING", {"default": "", "multiline": True}), # Will be hidden by JS
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO", "FLOAT", "INT")
+    RETURN_NAMES = ("audio", "duration_float", "duration_int")
+    FUNCTION = "encode"
+    CATEGORY = "Geekatplay Studio"
+
+    def encode(self, duration_seconds, audio_data):
+        import base64
+        import io
+        import torchaudio
+        import time
+
+        if not audio_data or len(audio_data) < 100:
+             print("SonicMicrophone: No audio data received. Returning silence.")
+             # Return silence of proper length
+             sr = 44100
+             frames = int(duration_seconds * sr)
+             return ({"waveform": torch.zeros(1, 1, frames), "sample_rate": sr}, duration_seconds, int(duration_seconds))
+
+        try:
+            # Decode base64
+            # Handle data URI scheme if present
+            header = ""
+            if "," in audio_data:
+                header, audio_data = audio_data.split(",", 1)
+            
+            print(f"SonicMicrophone: Decoding {len(audio_data)} bytes. Header: {header}")
+
+            decoded_data = base64.b64decode(audio_data)
+            audio_stream = io.BytesIO(decoded_data)
+            
+            # Use Torchaudio to load
+            try:
+                waveform, sample_rate = torchaudio.load(audio_stream)
+            except Exception as e:
+                # Fallback: Try pydub
+                print(f"SonicMicrophone: torchaudio.load failed ({e}). Trying pydub...")
+                from pydub import AudioSegment
+                audio_stream.seek(0)
+                seg = AudioSegment.from_file(audio_stream)
+                samples = np.array(seg.get_array_of_samples())
+                if seg.channels == 2:
+                    samples = samples.reshape((-1, 2)).T
+                else:
+                    samples = samples.reshape((1, -1))
+                waveform = torch.tensor(samples).float() / (2** (8 * seg.sample_width - 1))
+                sample_rate = seg.frame_rate
+            
+
+            # Calculate duration
+            num_frames = waveform.shape[-1]
+            duration = num_frames / sample_rate
+            
+            # Optional: Save to debug file if needed
+            # out_path = folder_paths.get_output_directory()
+            # torchaudio.save(os.path.join(out_path, f"mic_rec_{int(time.time())}.wav"), waveform, sample_rate)
+
+            return ({"waveform": waveform, "sample_rate": sample_rate}, float(duration), int(duration))
+
+        except Exception as e:
+            print(f"SonicMicrophone Error: {e}")
+            # Return silence on error
+            return ({"waveform": torch.zeros(1, 1, 44100), "sample_rate": 44100}, 0.0, 0)
+
+
 NODE_CLASS_MAPPINGS = {
     "SonicHoloSynth": SonicHoloSynth,
     "SonicFluxSynth": SonicFluxSynth,
@@ -742,16 +903,19 @@ NODE_CLASS_MAPPINGS = {
     "SonicTrackLayer": SonicTrackLayer,
     "SonicSaver": SonicSaver,
     "SonicSpectrogram": SonicSpectrogram,
-    "SonicWaveform": SonicWaveform
+    "SonicWaveform": SonicWaveform,
+    "SonicMicrophoneV3": SonicMicrophoneV3,
+    "SonicHeartMuLaLoader": SonicHeartMuLaLoader
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SonicHoloSynth": "Sonic-Holodeck 🎧",
     "SonicFluxSynth": "Sonic Flux (High Quality) 🌟",
     "SonicMixer": "Sonic DJ Mixer 🎛️",
-
     "SonicSinger": "Sonic Singer (Bark) 🎤",
     "SonicTrackLayer": "Sonic Trace Layer (Mixer) 🎚️",
-    "SonicSaver": "Sonic Saver (Music) 💾"
+    "SonicSaver": "Sonic Saver (Music) 💾",
+    "SonicMicrophoneV3": "Sonic Microphone V3 🎙️",
+    "SonicHeartMuLaLoader": "Sonic HeartMuLa Loader 📂"
 }
 
