@@ -8,12 +8,12 @@
       "id": 100,
       "type": "Note",
       "pos": [
-        146.0000110657233,
-        -298.0000408885925
+        120.0000092214361,
+        -250.00003407382707
       ],
       "size": [
-        720,
-        336
+        600,
+        255
       ],
       "flags": {},
       "order": 0,
@@ -30,129 +30,15 @@
       "bgcolor": "#353"
     },
     {
-      "id": 2,
-      "type": "SonicFluxSynth",
-      "pos": [
-        940.400069867886,
-        76.39995891291926
-      ],
-      "size": [
-        720,
-        396
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "prompt"
-          },
-          "link": 1
-        },
-        {
-          "name": "duration",
-          "type": "INT",
-          "widget": {
-            "name": "duration"
-          },
-          "link": 2
-        }
-      ],
-      "outputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "links": [
-            15
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
-        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
-        "Node name for S&R": "SonicFluxSynth"
-      },
-      "widgets_values": [
-        "",
-        "20",
-        4,
-        0.0,
-        0,
-        0,
-        "randomize"
-      ]
-    },
-    {
-      "id": 11,
-      "type": "SonicSinger",
-      "pos": [
-        940.400069867886,
-        542.0000146881351
-      ],
-      "size": [
-        720,
-        336
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 4,
-      "inputs": [
-        {
-          "name": "lyrics",
-          "type": "STRING",
-          "widget": {
-            "name": "lyrics"
-          },
-          "link": 3
-        },
-        {
-          "name": "voice_preset",
-          "type": "COMBO",
-          "widget": {
-            "name": "voice_preset"
-          }
-        },
-        {
-          "name": "mode",
-          "type": "COMBO",
-          "widget": {
-            "name": "mode"
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "vocal_audio",
-          "type": "AUDIO",
-          "links": [
-            16
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
-        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
-        "Node name for S&R": "SonicSinger"
-      },
-      "widgets_values": [
-        "",
-        "v2/en_speaker_6",
-        "text"
-      ]
-    },
-    {
       "id": 12,
       "type": "SonicTrackLayer",
       "pos": [
-        1736.886201886433,
-        92.67641760353149
+        1445.7385015720274,
+        75.56368133627625
       ],
       "size": [
-        480,
-        264
+        400,
+        195
       ],
       "flags": {},
       "order": 5,
@@ -165,6 +51,7 @@
         },
         {
           "name": "vocal_audio",
+          "shape": 7,
           "type": "AUDIO",
           "link": 16
         },
@@ -216,12 +103,12 @@
       "id": 10,
       "type": "SonicSaver",
       "pos": [
-        2401.6634733866867,
-        84.58207273405748
+        1999.7195611555724,
+        68.8183939450479
       ],
       "size": [
-        360,
-        240
+        300,
+        175
       ],
       "flags": {},
       "order": 6,
@@ -246,15 +133,302 @@
       ]
     },
     {
+      "id": 104,
+      "type": "SonicWaveform",
+      "pos": [
+        2008.041901379097,
+        338.8672070180175
+      ],
+      "size": [
+        225,
+        106
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
+        "Node name for S&R": "SonicWaveform"
+      },
+      "widgets_values": [
+        1,
+        "cyan",
+        "black"
+      ]
+    },
+    {
+      "id": 106,
+      "type": "SonicSpectrogram",
+      "pos": [
+        2019.1219512195119,
+        568.9891582375298
+      ],
+      "size": [
+        225,
+        106
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
+        "Node name for S&R": "SonicSpectrogram"
+      },
+      "widgets_values": [
+        2048,
+        512,
+        "magma"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "SonicFluxSynth",
+      "pos": [
+        790.4526551459018,
+        54.315786740162935
+      ],
+      "size": [
+        600,
+        305
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 1
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "widget": {
+            "name": "duration"
+          },
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
+        "Node name for S&R": "SonicFluxSynth"
+      },
+      "widgets_values": [
+        "declare-lab/TangoFlux",
+        "20",
+        4,
+        50,
+        4.5,
+        771662928519379,
+        "randomize"
+      ]
+    },
+    {
+      "id": 108,
+      "type": "PreviewAny",
+      "pos": [
+        792.3080877336724,
+        -174.80671319601578
+      ],
+      "size": [
+        573.5807291666667,
+        157.04427083333334
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.11.0",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 107,
+      "type": "PreviewImage",
+      "pos": [
+        2460.481031131229,
+        565.6457042063456
+      ],
+      "size": [
+        653.6311901754293,
+        339.9883053759721
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 8
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.11.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 105,
+      "type": "PreviewImage",
+      "pos": [
+        2472.54763355617,
+        260.4552828987763
+      ],
+      "size": [
+        599.6514201959858,
+        241.55460717816345
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.11.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "SonicSinger",
+      "pos": [
+        787.3789835376607,
+        429.2527288844844
+      ],
+      "size": [
+        600,
+        255
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "lyrics",
+          "type": "STRING",
+          "widget": {
+            "name": "lyrics"
+          },
+          "link": 3
+        },
+        {
+          "name": "voice_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "voice_preset"
+          }
+        },
+        {
+          "name": "mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "vocal_audio",
+          "type": "AUDIO",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
+        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
+        "Node name for S&R": "SonicSinger"
+      },
+      "widgets_values": [
+        "",
+        "v2/en_speaker_6",
+        "text"
+      ]
+    },
+    {
       "id": 101,
       "type": "SonicMixer",
       "pos": [
-        375.32682926829256,
-        128.40321883535
+        311.1056910569105,
+        105.336015696125
       ],
       "size": [
-        400,
-        483.625
+        333.33333333333337,
+        378.02083333333337
       ],
       "flags": {},
       "order": 1,
@@ -310,182 +484,9 @@
         "Cyberpunk",
         "Instrumental",
         "Synthesizer, Drum Machine, Bass",
-        "None",
+        "Robotic",
         120,
         15
-      ]
-    },
-    {
-      "id": 104,
-      "type": "SonicWaveform",
-      "pos": [
-        2411.6502816549164,
-        408.640648421621
-      ],
-      "size": [
-        270,
-        149.3125
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 5
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            6
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
-        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
-        "Node name for S&R": "SonicWaveform"
-      },
-      "widgets_values": [
-        1,
-        "cyan",
-        "black"
-      ]
-    },
-    {
-      "id": 105,
-      "type": "PreviewImage",
-      "pos": [
-        2969.0571602674036,
-        314.54633947853154
-      ],
-      "size": [
-        225,
-        48
-      ],
-      "flags": {},
-      "order": 9,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 6
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.11.0",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 106,
-      "type": "SonicSpectrogram",
-      "pos": [
-        2424.9463414634142,
-        684.7869898850356
-      ],
-      "size": [
-        270,
-        146.65625
-      ],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 7
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            8
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "GeekatplayStudio/Sonic-Holodeck",
-        "ver": "e862302222d30846d756c1b9773f89eec0bf3a63",
-        "Node name for S&R": "SonicSpectrogram"
-      },
-      "widgets_values": [
-        2048,
-        512,
-        "magma"
-      ]
-    },
-    {
-      "id": 107,
-      "type": "PreviewImage",
-      "pos": [
-        3007.921951219512,
-        809.5642256573932
-      ],
-      "size": [
-        225,
-        48
-      ],
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 8
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.11.0",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 108,
-      "type": "PreviewAny",
-      "pos": [
-        958.3023141752413,
-        -214.22276621252547
-      ],
-      "size": [
-        688.296875,
-        218.453125
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "source",
-          "type": "*",
-          "link": 9
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.11.0",
-        "Node name for S&R": "PreviewAny"
-      },
-      "widgets_values": [
-        null,
-        null,
-        false
       ]
     }
   ],
@@ -582,12 +583,12 @@
   "groups": [],
   "config": {},
   "extra": {
-    "workflowRendererVersion": "Vue",
+    "workflowRendererVersion": "LG",
     "ds": {
-      "scale": 0.9777424483306836,
+      "scale": 1.0755166931637539,
       "offset": [
-        -256.68617886178856,
-        361.50081300813014
+        -7.500440994271862,
+        334.77738583921007
       ]
     },
     "frontendVersion": "1.37.11",
