@@ -89,6 +89,78 @@ The project includes standardized workflows in the `workflows/` folder.
 
 ---
 
+## Optional Installs (Recommended)
+These optional dependencies improve codec support, performance, and overall stability. Install what fits your system and workflow.
+
+### 1) ffmpeg (codec support, conversions)
+Used by audio toolchains and often required for robust format handling.
+Sources: https://ffmpeg.org/download.html | https://brew.sh | https://chocolatey.org/packages/ffmpeg
+
+**macOS (Homebrew):**
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update && sudo apt-get install -y ffmpeg
+```
+
+**Windows (Chocolatey):**
+```powershell
+choco install ffmpeg
+```
+
+### 2) libsndfile (better WAV/FLAC read/write)
+Improves reliability for soundfile and other audio IO libraries.
+Sources: https://libsndfile.github.io/libsndfile/ | https://brew.sh
+
+**macOS (Homebrew):**
+```bash
+brew install libsndfile
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install -y libsndfile1
+```
+
+### 3) torchaudio (resampling + audio transforms)
+Ensure it matches your installed torch version and CUDA runtime.
+Sources: https://pypi.org/project/torchaudio/ | https://pytorch.org/get-started/locally/
+
+```bash
+pip install torchaudio
+```
+
+### 4) pydub (simple audio utilities)
+Useful for format conversion and quick audio operations.
+Sources: https://pypi.org/project/pydub/ | https://github.com/jiaaro/pydub
+
+```bash
+pip install pydub
+```
+
+### 5) xformers (optional speed/memory optimizations)
+If available for your platform and Python/Torch version, can improve performance.
+Sources: https://pypi.org/project/xformers/ | https://github.com/facebookresearch/xformers
+
+```bash
+pip install xformers
+```
+
+### 6) bitsandbytes (memory-efficient loading on CUDA)
+Optional quantization support for compatible NVIDIA GPUs.
+Sources: https://pypi.org/project/bitsandbytes/ | https://github.com/bitsandbytes-foundation/bitsandbytes
+
+```bash
+pip install bitsandbytes
+```
+
+> Tip: If installing `torchaudio`, `xformers`, or `bitsandbytes`, prefer matching wheels for your exact Torch + CUDA version. When in doubt, install Torch first, then add these packages.
+
+---
+
 ##  Models & Checkpoints
 
 | Model | File | Location | Auto-Download? |
