@@ -309,31 +309,38 @@ class SonicSinger:
         # But to ensure it goes to keys we want, we just overwrite it for this session usually.
         # Ideally we want: ComfyUI/models/suno
         # IF XDG_CACHE_HOME = ComfyUI/models, then result is ComfyUI/models/suno/bark_v0
+        prev_xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
         os.environ["XDG_CACHE_HOME"] = folder_paths.models_dir
         
         print(f"Generating vocals with Bark: {voice_preset}")
         
         try:
-            from bark import SAMPLE_RATE, generate_audio, preload_models
-        except ImportError:
-            raise ImportError("Please install Bark: pip install git+https://github.com/suno-ai/bark.git")
+            try:
+                from bark import SAMPLE_RATE, generate_audio, preload_models
+            except ImportError:
+                raise ImportError("Please install Bark: pip install git+https://github.com/suno-ai/bark.git")
+                
+            # Helper to ensure models are loaded
+            preload_models()
+
+            # Generate audio from text
+            # Bark is pure text-to-speech effectively, but with [tags] can sing somewhat.
+            audio_array = generate_audio(lyrics, history_prompt=voice_preset)
+
+            # Bark output is numpy array float32
+            # Convert to torch tensor [channels, samples]
+            audio_tensor = torch.from_numpy(audio_array).float()
             
-        # Helper to ensure models are loaded
-        preload_models()
+            # Add channel dimension if needed (Bark is mono usually)
+            if audio_tensor.dim() == 1:
+                audio_tensor = audio_tensor.unsqueeze(0)
 
-        # Generate audio from text
-        # Bark is pure text-to-speech effectively, but with [tags] can sing somewhat.
-        audio_array = generate_audio(lyrics, history_prompt=voice_preset)
-
-        # Bark output is numpy array float32
-        # Convert to torch tensor [channels, samples]
-        audio_tensor = torch.from_numpy(audio_array).float()
-        
-        # Add channel dimension if needed (Bark is mono usually)
-        if audio_tensor.dim() == 1:
-            audio_tensor = audio_tensor.unsqueeze(0)
-
-        return ({"waveform": audio_tensor.unsqueeze(0), "sample_rate": SAMPLE_RATE},)
+            return ({"waveform": audio_tensor.unsqueeze(0), "sample_rate": SAMPLE_RATE},)
+        finally:
+            if prev_xdg_cache_home is None:
+                os.environ.pop("XDG_CACHE_HOME", None)
+            else:
+                os.environ["XDG_CACHE_HOME"] = prev_xdg_cache_home
 
 class SonicMixer:
     """
@@ -503,6 +510,10 @@ class SonicTrackLayer:
             v_wav = resampler(v_wav)
             # v_sr is now b_sr
 
+        # 1.1 Ensure both tensors are on the same device
+        if v_wav.device != b_wav.device:
+            v_wav = v_wav.to(b_wav.device)
+
         # 2. Match Channels
         # Assume stereo target. If mono, duplicate.
         if b_wav.shape[1] == 1:
@@ -516,9 +527,10 @@ class SonicTrackLayer:
         
         target_len = max(b_len, v_len)
         
-        # Prepare buffers
-        final_b = torch.zeros((1, 2, target_len), device=b_wav.device)
-        final_v = torch.zeros((1, 2, target_len), device=v_wav.device)
+        # Prepare buffers on a shared device
+        mix_device = b_wav.device
+        final_b = torch.zeros((1, 2, target_len), device=mix_device)
+        final_v = torch.zeros((1, 2, target_len), device=mix_device)
         
         # Place Backing
         if alignment == "loop_backing" and b_len < target_len:
@@ -534,6 +546,10 @@ class SonicTrackLayer:
         if alignment == "center":
             start = (target_len - v_len) // 2
             final_v[..., start:start+v_len] = v_wav
+        elif alignment == "loop_vocals" and v_len < target_len:
+            repeats = math.ceil(target_len / v_len)
+            tiled = v_wav.repeat(1, 1, repeats)
+            final_v = tiled[..., :target_len]
         else:
             final_v[..., :v_len] = v_wav
 
@@ -544,20 +560,6 @@ class SonicTrackLayer:
         mixed = torch.tanh(mixed)
         
         return ({"waveform": mixed, "sample_rate": b_sr},)
-        prompt_parts.append("high fidelity, stereo, masterpiece")
-        
-        final_prompt = ", ".join(prompt_parts)
-        
-        # Set parameters based on style
-        cfg = 3.0
-        temperature = 1.0
-        
-        if style in ["Techno", "Cyberpunk"]:
-            cfg = 4.0 # More strict
-        elif style in ["Ambient", "Lo-Fi"]:
-             temperature = 1.2 # More variety
-             
-        return (final_prompt, bpm, duration, cfg, temperature)
 
 class SonicSaver:
     def __init__(self):

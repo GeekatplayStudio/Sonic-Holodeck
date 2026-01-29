@@ -199,6 +199,47 @@ app.registerExtension({
                     btn.addEventListener("touchstart", start);
                     btn.addEventListener("touchend", stop);
 
+                    // --- 2.4 Cleanup on Node Removal ---
+                    const cleanup = () => {
+                        try {
+                            window.removeEventListener("mouseup", globalMouseUp);
+                            btn.removeEventListener("mousedown", start);
+                            btn.removeEventListener("mouseup", stop);
+                            btn.removeEventListener("mouseleave", stop);
+                            btn.removeEventListener("touchstart", start);
+                            btn.removeEventListener("touchend", stop);
+
+                            if (S.timerId) {
+                                clearInterval(S.timerId);
+                                S.timerId = null;
+                            }
+
+                            if (S.recording && S.recorder) {
+                                try {
+                                    S.recorder.stop();
+                                } catch (e) {
+                                    // Ignore recorder stop errors during cleanup
+                                }
+                            }
+
+                            if (domWidget && domWidget.element) {
+                                domWidget.element.remove();
+                            } else if (btn && btn.parentElement) {
+                                btn.parentElement.remove();
+                            }
+                        } catch (e) {
+                            console.warn("SonicMicrophoneV3 cleanup error:", e);
+                        }
+                    };
+
+                    const originalOnRemoved = node.onRemoved;
+                    node.onRemoved = function () {
+                        cleanup();
+                        if (originalOnRemoved) {
+                            return originalOnRemoved.apply(this, arguments);
+                        }
+                    };
+
 
                     // --- 3. Internal Scan Function ---
                     const doScan = async () => {
